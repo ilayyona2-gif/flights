@@ -177,21 +177,40 @@ a { color: inherit; }
 /* ─── KIWI FLIGHT CARDS ──────────────────────────────── */
 .flight-card {
   background: #151b2e; border: 1px solid #1e2940;
-  border-radius: 10px; padding: 11px 12px; margin-bottom: 8px;
-  display: flex; flex-direction: column; gap: 9px;
+  border-radius: 12px; padding: 13px 14px; margin-bottom: 10px;
+  display: flex; flex-direction: column; gap: 10px;
 }
-.flight-card.feasible  { border-right: 3px solid #10b981; }
-.flight-card.infeasible { border-right: 3px solid #ef4444; opacity: 0.68; }
+.flight-card.feasible   { border-right: 4px solid #10b981; }
+.flight-card.infeasible { border-right: 4px solid #ef4444; opacity: 0.68; }
 
-.fc-top { display: flex; gap: 8px; align-items: flex-start; }
-.fc-info { flex: 1; min-width: 0; overflow: hidden; }
-.fc-price { flex-shrink: 0; text-align: left; min-width: 64px; }
+/* שורת חברת תעופה + מחיר */
+.fc-top { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; }
+.fc-airline-row { font-size: 0.72rem; color: #6a8ab0; margin-bottom: 8px; }
 
-.airline-name { font-size: 0.75rem; color: #8a9fbc; margin-bottom: 4px; overflow-wrap: break-word; }
-.fc-route { font-size: 0.89rem; font-weight: 600; color: #c8d8ee; margin-bottom: 3px; overflow-wrap: break-word; }
-.fc-ret   { font-size: 0.8rem; color: #8a9fbc; overflow-wrap: break-word; }
-.price-usd { font-size: 1.1rem; font-weight: 700; color: #10b981; white-space: nowrap; }
-.price-sub { font-size: 0.65rem; color: #6b7a90; margin-top: 2px; }
+/* שתי שורות טיסה */
+.fc-legs { display: flex; flex-direction: column; gap: 7px; }
+.fc-leg {
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px; padding: 9px 11px;
+  display: flex; align-items: center; gap: 10px;
+}
+.fc-leg-icon { font-size: 1.1rem; flex-shrink: 0; }
+.fc-leg-body { flex: 1; min-width: 0; }
+.fc-leg-label {
+  font-size: 0.65rem; color: #5a7a9a;
+  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px;
+}
+.fc-leg-times {
+  font-size: 1rem; font-weight: 700; color: #ddeeff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fc-leg-detail { font-size: 0.72rem; color: #7a9ab8; margin-top: 2px; }
+.fc-leg-badge  { flex-shrink: 0; }
+
+/* מחיר */
+.fc-price-box { text-align: left; flex-shrink: 0; }
+.price-usd { font-size: 1.15rem; font-weight: 800; color: #10b981; white-space: nowrap; }
+.price-per { font-size: 0.65rem; color: #4a7060; margin-top: 2px; white-space: nowrap; }
 
 /* book links — horizontally scrollable row */
 .book-links {
@@ -213,24 +232,18 @@ a { color: inherit; }
 
 .no-flights { text-align: center; color: #3a4a62; padding: 28px; font-size: 0.88rem; }
 
-/* ─── LASTMINUTE CARDS ───────────────────────────────── */
+/* ─── LASTMINUTE CARDS — אותו עיצוב כמו Kiwi ────────── */
 .rt-card {
   background: #151b2e; border: 1px solid #1e2940;
-  border-radius: 10px; padding: 11px 12px; margin-bottom: 8px;
+  border-radius: 12px; padding: 13px 14px; margin-bottom: 10px;
+  display: flex; flex-direction: column; gap: 10px;
 }
-.rt-card.feasible-rt   { border-right: 3px solid #10b981; }
-.rt-card.infeasible-rt { border-right: 3px solid #ef4444; opacity: 0.65; }
-.rt-legs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-.rt-leg-label  { font-size: 0.63rem; color: #4a6080; text-transform: uppercase; margin-bottom: 3px; }
-.rt-leg-route  { font-size: 0.87rem; font-weight: 600; color: #c8d8ee; overflow-wrap: break-word; }
-.rt-leg-airline { font-size: 0.7rem; color: #7a8faa; margin-top: 2px; }
-.rt-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 8px;
-  padding-top: 10px; border-top: 1px solid #1a2234;
-}
-.rt-price-eur { font-size: 1rem; font-weight: 700; color: #a78bfa; }
-.rt-price-usd { font-size: 0.7rem; color: #6b7a90; margin-top: 1px; }
+.rt-card.feasible-rt   { border-right: 4px solid #10b981; }
+.rt-card.infeasible-rt { border-right: 4px solid #ef4444; opacity: 0.65; }
+.rt-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.rt-airline-row { font-size: 0.72rem; color: #6a8ab0; }
+.rt-price-eur { font-size: 1.15rem; font-weight: 800; color: #a78bfa; white-space: nowrap; }
+.rt-price-usd { font-size: 0.65rem; color: #4a5a7a; margin-top: 2px; white-space: nowrap; }
 
 /* ─── BAGGAGE ────────────────────────────────────────── */
 .baggage-section {
@@ -539,33 +552,58 @@ function renderKiwi() {
   if (!list.length) { el.innerHTML = '<div class="no-flights">אין טיסות לפי הסינון</div>'; return; }
 
   el.innerHTML = list.map(f => {
-    const cls = f.feasible ? 'feasible' : 'infeasible';
-    const db  = f.direct
-      ? '<span class="badge badge-direct">ישיר ✈️</span>'
+    const cls   = f.feasible ? 'feasible' : 'infeasible';
+    const stopBadge = f.direct
+      ? '<span class="badge badge-direct">ישיר</span>'
       : '<span class="badge badge-stop">עצירה</span>';
-    const rb  = f.feasible
-      ? `<span class="badge badge-ok">✅ ${f.retDep}</span>`
-      : `<span class="badge badge-bad">❌ ${f.retDep}</span>`;
+    const feasBadge = f.feasible
+      ? '<span class="badge badge-ok">✅ מתאים לקרוז</span>'
+      : '<span class="badge badge-bad">❌ לא מתאים</span>';
 
     return `<div class="flight-card ${cls}">
+
+      <!-- חברת תעופה + מחיר -->
       <div class="fc-top">
-        <div class="fc-info">
-          <div class="airline-name"><span class="src-label src-kiwi">Kiwi</span> ${f.airline}</div>
-          <div class="fc-route">הלוך: ${f.out} ${db}</div>
-          <div class="fc-ret">חזור 29.7: ${f.ret} ${rb}</div>
+        <div style="flex:1;min-width:0">
+          <div class="fc-airline-row">
+            <span class="src-label src-kiwi">Kiwi</span>
+            &nbsp;${f.airline}
+          </div>
         </div>
-        <div class="fc-price">
+        <div class="fc-price-box">
           <div class="price-usd">$${f.price.toLocaleString()}</div>
-          <div class="price-sub">5 נוסעים</div>
-          <div class="price-sub">$${Math.round(f.price/PAX)}/אדם</div>
+          <div class="price-per">5 נוסעים · $${Math.round(f.price/PAX)}/אדם</div>
         </div>
       </div>
+
+      <!-- שתי שורות טיסה -->
+      <div class="fc-legs">
+        <div class="fc-leg">
+          <div class="fc-leg-icon">🛫</div>
+          <div class="fc-leg-body">
+            <div class="fc-leg-label">יציאה מתל אביב — 21 ביולי</div>
+            <div class="fc-leg-times">${f.out}</div>
+            <div class="fc-leg-detail">תל אביב ← רומא &nbsp;${stopBadge}</div>
+          </div>
+        </div>
+        <div class="fc-leg">
+          <div class="fc-leg-icon">🛬</div>
+          <div class="fc-leg-body">
+            <div class="fc-leg-label">חזרה לתל אביב — 29 ביולי</div>
+            <div class="fc-leg-times">${f.ret}</div>
+            <div class="fc-leg-detail">רומא ← תל אביב &nbsp;${feasBadge}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- כפתורי הזמנה -->
       <div class="book-links">
-        <a href="${f.link}" target="_blank" class="book-link primary">📋 Kiwi</a>
+        <a href="${f.link}" target="_blank" class="book-link primary">📋 הזמן ב-Kiwi</a>
         <a href="${GF}"    target="_blank" class="book-link">🔍 Google</a>
         <a href="https://www.elal.com/he/flights"  target="_blank" class="book-link">🔵 אל על</a>
         <a href="https://www.israir.co.il"          target="_blank" class="book-link">🟣 ישראייר</a>
       </div>
+
     </div>`;
   }).join('');
 }
@@ -576,36 +614,54 @@ function renderLM() {
   el.innerHTML = LM.map(f => {
     const usd = Math.round(f.eur * EUR_USD);
     const cls = f.feasible ? 'feasible-rt' : 'infeasible-rt';
-    const rb  = f.feasible
-      ? `<span class="badge badge-ok">✅ ${f.retDep}</span>`
-      : `<span class="badge badge-bad">❌ ${f.retDep}</span>`;
     const parts = f.airline.split('/');
     const outAirline = parts[0].trim();
     const retAirline = parts.length > 1 ? parts[1].trim() : parts[0].trim();
-    /* FIX 5: השתמש בשדות outDirect/retDirect במקום "ישיר" קשיח */
     const outType = f.outDirect ? 'ישיר' : 'עצירה';
     const retType = f.retDirect ? 'ישיר' : 'עצירה';
+    const feasBadge = f.feasible
+      ? '<span class="badge badge-ok">✅ מתאים לקרוז</span>'
+      : '<span class="badge badge-bad">❌ לא מתאים</span>';
 
     return `<div class="rt-card ${cls}">
-      <div class="rt-legs">
-        <div>
-          <div class="rt-leg-label">הלוך · TLV→FCO · 21.7</div>
-          <div class="rt-leg-route">${f.out}</div>
-          <div class="rt-leg-airline">${outAirline} · ${outType}</div>
+
+      <!-- חברת תעופה + מחיר -->
+      <div class="rt-top">
+        <div class="rt-airline-row">
+          <span class="src-label src-lm">lastminute</span>
+          &nbsp;${f.airline}
         </div>
-        <div>
-          <div class="rt-leg-label">חזור · FCO→TLV · 29.7</div>
-          <div class="rt-leg-route">${f.ret} ${rb}</div>
-          <div class="rt-leg-airline">${retAirline} · ${retType}</div>
-        </div>
-      </div>
-      <div class="rt-footer">
-        <div>
+        <div style="text-align:left">
           <div class="rt-price-eur">€${f.eur.toLocaleString()}</div>
-          <div class="rt-price-usd">≈ $${usd.toLocaleString()} · $${Math.round(usd/PAX)}/אדם</div>
+          <div class="rt-price-usd">≈$${usd.toLocaleString()} · $${Math.round(usd/PAX)}/אדם</div>
         </div>
-        <a href="${f.link}" target="_blank" class="book-link primary">📋 lastminute</a>
       </div>
+
+      <!-- שתי שורות טיסה — אותו עיצוב כמו Kiwi -->
+      <div class="fc-legs">
+        <div class="fc-leg">
+          <div class="fc-leg-icon">🛫</div>
+          <div class="fc-leg-body">
+            <div class="fc-leg-label">יציאה מתל אביב — 21 ביולי</div>
+            <div class="fc-leg-times">${f.out}</div>
+            <div class="fc-leg-detail">${outAirline} · ${outType}</div>
+          </div>
+        </div>
+        <div class="fc-leg">
+          <div class="fc-leg-icon">🛬</div>
+          <div class="fc-leg-body">
+            <div class="fc-leg-label">חזרה לתל אביב — 29 ביולי</div>
+            <div class="fc-leg-times">${f.ret}</div>
+            <div class="fc-leg-detail">${retAirline} · ${retType} &nbsp;${feasBadge}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- כפתור הזמנה -->
+      <div class="book-links">
+        <a href="${f.link}" target="_blank" class="book-link primary">📋 הזמן ב-lastminute</a>
+      </div>
+
     </div>`;
   }).join('');
 }
@@ -719,42 +775,4 @@ function renderHistory() {
             tooltip: { callbacks: { label: c => ' $' + c.parsed.y.toLocaleString() + ' (5 נוסעים)' } }
           },
           scales: {
-            x: { ticks:{ color:'#5a7096', maxRotation:0, font:{size:11} }, grid:{ color:'#1a2234' } },
-            y: { ticks:{ color:'#5a7096', callback: v => '$'+v.toLocaleString(), font:{size:11} }, grid:{ color:'#1a2234' } }
-          }
-        }
-      });
-    } catch(err) {
-      container.innerHTML = '<div class="chart-error">שגיאה בטעינת הגרף.</div>';
-    }
-
-    document.getElementById('history-table').innerHTML = `
-      <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
-        <thead>
-          <tr style="border-bottom:1px solid #1e2940;color:#5a7096">
-            <th style="padding:8px 6px;text-align:right">תאריך</th>
-            <th style="padding:8px 6px;text-align:left">מחיר</th>
-            <th style="padding:8px 6px;text-align:left">מקור</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${h.map(x => `
-            <tr style="border-bottom:1px solid #121824">
-              <td style="padding:8px 6px;color:#94a3b8">${x.date}</td>
-              <td style="padding:8px 6px;color:#10b981;font-weight:700">$${x.price.toLocaleString()}</td>
-              <td style="padding:8px 6px;color:#5a7096">${x.src}</td>
-            </tr>`).join('')}
-        </tbody>
-      </table>`;
-  }); /* end loadChartJs callback */
-}
-
-/* ─── INIT ───────────────────────────────────────────── */
-document.getElementById('lastUpdate').textContent = 'עודכן: ' + new Date().toLocaleString('he-IL');
-renderKiwi();
-renderLM();
-calcBaggage();
-/* FIX 4: renderHistory() מוסר מה-init — יטען רק כשנכנסים לטאב היסטוריה */
-</script>
-</body>
-</html>
+            x: { ticks:{ color:'#5a7096', maxRotation:0, font:{size:11} }, grid:{ color:
