@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מעקב טיסות TLV ↔ FCO</title>
+<!-- Chart.js נטען דינמית רק בטאב היסטוריה — לא חוסם את שאר הדף -->
+<style>
+/* ─── RESET & BASE ───────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { overflow-x: hidden; }
+body {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  background: #0f1117;
+  color: #e0e6f0;
+  direction: rtl;
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+  padding-bottom: 32px;
+}
+a { color: inherit; }
+
+/* ─── HEADER ─────────────────────────────────────────── */
+.header {
+  background: linear-gradient(135deg, #1a1f2e 0%, #252d42 100%);
+  padding: 13px 14px;
+  border-bottom: 2px solid #2a3450;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.header-left { flex: 1; min-width: 0; }
+.header-title { font-size: 1.1rem; font-weight: 700; color: #7eb8f7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-sub { font-size: 0.72rem; color: #7a8faa; margin-top: 3px; line-height: 1.5; }
+.last-update { font-size: 0.65rem; color: #556a88; margin-top: 2px; }
+.refresh-btn {
+  flex-shrink: 0;
+  background: #2563eb; color: #fff; border: none;
+  padding: 0 16px; height: 44px; border-radius: 8px;
+  font-size: 0.84rem; font-family: inherit; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.refresh-btn:active { background: #1d4ed8; }
+
+/* ─── CRUISE BANNER ──────────────────────────────────── */
+.cruise-banner {
+  background: linear-gradient(135deg, #0c2340 0%, #1a3a5c 100%);
+  border: 1.5px solid #2563eb;
+  border-radius: 12px;
+  margin: 12px 12px 0;
+  padding: 12px 13px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.cruise-icon { font-size: 1.5rem; flex-shrink: 0; line-height: 1.3; }
+.cruise-info { flex: 1; min-width: 0; }
+.cruise-info h3 { color: #7eb8f7; font-size: 0.92rem; margin-bottom: 4px; }
+.cruise-info p { color: #a0b8d0; font-size: 0.76rem; line-height: 1.6; word-break: break-word; }
+.cruise-badge {
+  background: #1e40af; color: #bfdbfe;
+  padding: 3px 8px; border-radius: 20px;
+  font-size: 0.7rem; font-weight: 600;
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* ─── ALERT ──────────────────────────────────────────── */
+.alert {
+  background: #1c1500; border: 1.5px solid #d97706;
+  border-radius: 10px; margin: 10px 12px;
+  padding: 10px 12px;
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.alert-text { color: #fbbf24; font-size: 0.76rem; line-height: 1.65; overflow-wrap: break-word; }
+.alert-text strong { color: #fde68a; }
+
+/* ─── BEST DEAL ──────────────────────────────────────── */
+.best-deal {
+  background: linear-gradient(135deg, #052e16 0%, #064e3b 100%);
+  border: 2px solid #10b981; border-radius: 12px;
+  margin: 0 12px 12px; padding: 13px;
+}
+.best-deal-header { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+.best-deal-header .trophy { font-size: 1.25rem; flex-shrink: 0; line-height: 1.3; }
+.best-deal-header h3 { color: #34d399; font-size: 0.87rem; line-height: 1.45; flex: 1; min-width: 0; overflow-wrap: break-word; }
+.deal-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.deal-card { background: rgba(0,0,0,0.35); border-radius: 8px; padding: 10px; }
+.deal-card .dc-label { font-size: 0.65rem; color: #6ee7b7; text-transform: uppercase; margin-bottom: 5px; }
+.deal-card .dc-route { font-size: 0.87rem; color: #e0e6f0; font-weight: 700; margin-bottom: 3px; }
+.deal-card .dc-airline { font-size: 0.7rem; color: #94a3b8; }
+.deal-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+  margin-top: 12px; padding-top: 11px; border-top: 1px solid #065f46;
+}
+.deal-price { font-size: 1.5rem; font-weight: 800; color: #10b981; }
+.deal-price-sub { font-size: 0.7rem; color: #6ee7b7; margin-top: 2px; }
+.book-deal-btn {
+  background: #10b981; color: #fff; border: none;
+  height: 44px; padding: 0 18px; border-radius: 8px;
+  font-size: 0.88rem; font-weight: 700; font-family: inherit;
+  text-decoration: none; display: inline-flex; align-items: center;
+  white-space: nowrap; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.book-deal-btn:active { background: #059669; }
+
+/* ─── TABS ───────────────────────────────────────────── */
+.tabs-outer { border-bottom: 2px solid #1e2940; }
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0 12px;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab-btn {
+  flex-shrink: 0;
+  background: none; border: none;
+  color: #5a7096;
+  height: 46px; padding: 0 15px;
+  font-size: 0.83rem; font-family: inherit;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-btn.active { color: #7eb8f7; border-bottom-color: #2563eb; font-weight: 600; }
+.tab-content { display: none; padding: 12px; }
+.tab-content.active { display: block; }
+
+/* ─── FILTER PILLS ───────────────────────────────────── */
+.filter-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.filter-btn {
+  background: #1e2940; border: 1px solid #2a3a5a;
+  color: #7a8faa; height: 38px; padding: 0 14px;
+  border-radius: 20px; font-size: 0.78rem; font-family: inherit;
+  cursor: pointer; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.filter-btn.active { background: #1d3a6e; border-color: #2563eb; color: #93c5fd; }
+
+/* ─── SECTION TITLE ──────────────────────────────────── */
+.section-title {
+  font-size: 0.72rem; color: #7a8faa;
+  letter-spacing: 0.3px; margin: 12px 0 8px;
+  padding-bottom: 6px; border-bottom: 1px solid #1e2940;
+  overflow-wrap: break-word; word-break: break-word;
+}
+.info-note {
+  font-size: 0.7rem; color: #4a6080; margin-top: 8px;
+  padding: 7px 10px; background: #0f1620; border-radius: 6px;
+  border-right: 2px solid #2a4060; line-height: 1.55;
+  overflow-wrap: break-word;
+}
+
+/* ─── BADGES ─────────────────────────────────────────── */
+.badge {
+  display: inline-block; padding: 2px 6px;
+  border-radius: 10px; font-size: 0.63rem; font-weight: 600;
+  white-space: nowrap; vertical-align: middle;
+}
+.badge-direct { background: #1e3a5f; color: #60a5fa; }
+.badge-stop   { background: #2a1f00; color: #f59e0b; }
+.badge-ok     { background: #052e16; color: #34d399; }
+.badge-bad    { background: #2d0000; color: #f87171; }
+.src-label { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 0.62rem; font-weight: 600; }
+.src-kiwi  { background: #0f2040; color: #60a5fa; }
+.src-lm    { background: #1a0a2e; color: #c4b5fd; }
+
+/* ─── KIWI FLIGHT CARDS ──────────────────────────────── */
+.flight-card {
+  background: #151b2e; border: 1px solid #1e2940;
+  border-radius: 10px; padding: 11px 12px; margin-bottom: 8px;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.flight-card.feasible  { border-right: 3px solid #10b981; }
+.flight-card.infeasible { border-right: 3px solid #ef4444; opacity: 0.68; }
+
+.fc-top { display: flex; gap: 8px; align-items: flex-start; }
+.fc-info { flex: 1; min-width: 0; overflow: hidden; }
+.fc-price { flex-shrink: 0; text-align: left; min-width: 64px; }
+
+.airline-name { font-size: 0.75rem; color: #8a9fbc; margin-bottom: 4px; overflow-wrap: break-word; }
+.fc-route { font-size: 0.89rem; font-weight: 600; color: #c8d8ee; margin-bottom: 3px; overflow-wrap: break-word; }
+.fc-ret   { font-size: 0.8rem; color: #8a9fbc; overflow-wrap: break-word; }
+.price-usd { font-size: 1.1rem; font-weight: 700; color: #10b981; white-space: nowrap; }
+.price-sub { font-size: 0.65rem; color: #6b7a90; margin-top: 2px; }
+
+/* book links — horizontally scrollable row */
+.book-links {
+  display: flex; gap: 6px; flex-wrap: nowrap;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; padding-bottom: 2px;
+}
+.book-links::-webkit-scrollbar { display: none; }
+.book-link {
+  flex-shrink: 0;
+  background: #1a2a4a; border: 1px solid #2a4070; color: #7eb8f7;
+  height: 36px; padding: 0 11px; border-radius: 6px;
+  font-size: 0.75rem; text-decoration: none; white-space: nowrap;
+  display: inline-flex; align-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.book-link.primary { background: #1d3a6e; border-color: #2563eb; }
+.book-link:active { opacity: 0.72; }
+
+.no-flights { text-align: center; color: #3a4a62; padding: 28px; font-size: 0.88rem; }
+
+/* ─── LASTMINUTE CARDS ───────────────────────────────── */
+.rt-card {
+  background: #151b2e; border: 1px solid #1e2940;
+  border-radius: 10px; padding: 11px 12px; margin-bottom: 8px;
+}
+.rt-card.feasible-rt   { border-right: 3px solid #10b981; }
+.rt-card.infeasible-rt { border-right: 3px solid #ef4444; opacity: 0.65; }
+.rt-legs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.rt-leg-label  { font-size: 0.63rem; color: #4a6080; text-transform: uppercase; margin-bottom: 3px; }
+.rt-leg-route  { font-size: 0.87rem; font-weight: 600; color: #c8d8ee; overflow-wrap: break-word; }
+.rt-leg-airline { font-size: 0.7rem; color: #7a8faa; margin-top: 2px; }
+.rt-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px;
+  padding-top: 10px; border-top: 1px solid #1a2234;
+}
+.rt-price-eur { font-size: 1rem; font-weight: 700; color: #a78bfa; }
+.rt-price-usd { font-size: 0.7rem; color: #6b7a90; margin-top: 1px; }
+
+/* ─── BAGGAGE ────────────────────────────────────────── */
+.baggage-section {
+  background: #12182a; border: 1px solid #1e2940;
+  border-radius: 12px; padding: 14px; margin-top: 8px;
+}
+.baggage-section h4 { color: #7eb8f7; margin-bottom: 12px; font-size: 0.9rem; }
+.bag-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.preset-btn {
+  background: #1e2940; border: 1px solid #2a3a5a; color: #7a8faa;
+  height: 40px; padding: 0 14px; border-radius: 6px;
+  font-size: 0.78rem; font-family: inherit; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.preset-btn.active { background: #1d3a6e; border-color: #2563eb; color: #93c5fd; }
+
+.bag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.bag-input-group label {
+  font-size: 0.72rem; color: #5a7096;
+  display: block; margin-bottom: 5px; line-height: 1.45;
+}
+.bag-input-group input {
+  width: 100%;
+  background: #1a2234; border: 1px solid #2a3a5a;
+  border-radius: 8px; padding: 0 12px;
+  height: 46px;
+  color: #e0e6f0; font-size: 16px; /* 16px מונע זום אוטומטי ב-iOS */
+  font-family: inherit; text-align: right; direction: rtl;
+  -webkit-appearance: none; appearance: none;
+}
+.bag-input-group input:focus { outline: 2px solid #2563eb; border-color: #2563eb; }
+
+.bag-result {
+  background: #0f1c10; border: 1px solid #166534;
+  border-radius: 8px; padding: 12px; margin-top: 4px;
+}
+.bag-result-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 0.76rem; margin-bottom: 5px; color: #94a3b8; gap: 6px;
+  flex-wrap: wrap;
+}
+.bag-row-label { flex-shrink: 0; }
+.bag-row-val   { text-align: left; color: #b8c8e0; }
+.bag-result-total {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.92rem; font-weight: 700; color: #34d399;
+  padding-top: 8px; border-top: 1px solid #166534; margin-top: 6px;
+}
+
+.direct-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.direct-link-btn {
+  background: #1d3a6e; border: 1px solid #2563eb; color: #7eb8f7;
+  height: 44px; padding: 0 14px; border-radius: 8px;
+  font-size: 0.82rem; text-decoration: none;
+  display: inline-flex; align-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.direct-link-btn:active { opacity: 0.75; }
+
+/* ─── HISTORY ────────────────────────────────────────── */
+.chart-container { position: relative; height: 200px; margin-top: 12px; }
+.history-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 12px; }
+.history-table-wrap table { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 240px; }
+.chart-error { text-align:center; color:#4a6080; padding:40px 20px; font-size:0.85rem; }
+
+/* ─── MOBILE BREAKPOINTS ─────────────────────────────── */
+@media (max-width: 480px) {
+  .deal-cards { grid-template-columns: 1fr; }
+  .rt-legs { grid-template-columns: 1fr; }
+  .bag-grid { grid-template-columns: 1fr; }
+  .book-deal-btn { width: 100%; justify-content: center; margin-top: 4px; }
+  .header-title { font-size: 1rem; }
+  .fc-top { flex-direction: column; }
+  .fc-price { text-align: right; display: flex; gap: 12px; align-items: center; }
+  .price-sub { margin-top: 0; }
+}
+
+@media (max-width: 360px) {
+  .tab-btn { padding: 0 10px; font-size: 0.76rem; }
+  .fc-route { font-size: 0.82rem; }
+  .deal-price { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-title">✈️ מעקב טיסות TLV ↔ FCO</div>
+    <div class="header-sub">5 נוסעים · 21–29 יולי 2026 · עדכון: 9.5.2026</div>
+    <div class="last-update" id="lastUpdate"></div>
+  </div>
+  <!-- FIX 2: כפתור רענון עם fallback (sendPrompt לא קיים בקובץ רגיל) -->
+  <button class="refresh-btn" onclick="handleRefresh()">🔄 רענן</button>
+</div>
+
+<!-- CRUISE BANNER -->
+<div class="cruise-banner">
+  <div class="cruise-icon">🚢</div>
+  <div class="cruise-info">
+    <h3>MSC Grandiosa — קרוז ים תיכון</h3>
+    <p>יציאה: <strong>22.7.2026 — 19:00</strong> מנמל צ'יביטווקיה</p>
+    <p>חזרה: <strong>29.7.2026 — 07:00</strong> · חזור <strong>לא לפני 12:30 מ-FCO</strong></p>
+  </div>
+  <span class="cruise-badge">🏖️ 7 לילות</span>
+</div>
+
+<!-- ALERT -->
+<div class="alert">
+  <div class="alert-icon">⚠️</div>
+  <div class="alert-text">
+    עגינה 07:00 + פריקה ~2ש' + נסיעה ~1.5ש' →
+    <strong>יציאה מינימלית: 12:30 מ-FCO.</strong>
+    טיסות לפני 12:30 מסומנות ❌ ואינן ישימות.
+  </div>
+</div>
+
+<!-- BEST DEAL -->
+<div class="best-deal">
+  <div class="best-deal-header">
+    <span class="trophy">🏆</span>
+    <h3>הדיל הזול הישים לקרוז — 9.5.2026</h3>
+  </div>
+  <div class="deal-cards">
+    <div class="deal-card">
+      <div class="dc-label">✈️ הלוך · 21 יולי · ישיר</div>
+      <div class="dc-route">10:55 TLV → 13:45 FCO</div>
+      <div class="dc-airline">Wizz Air Malta · 3ש' 50ד'</div>
+    </div>
+    <div class="deal-card">
+      <div class="dc-label">✈️ חזור · 29 יולי · ✅ 18:30</div>
+      <div class="dc-route">18:30 FCO → 02:45+1 TLV</div>
+      <div class="dc-airline">Aegean via Athens · עצירה ATH</div>
+    </div>
+  </div>
+  <div class="deal-footer">
+    <div>
+      <div class="deal-price">$1,681</div>
+      <div class="deal-price-sub">5 נוסעים · הלוך-חזור · $336/אדם</div>
+    </div>
+    <a href="https://on.kiwi.com/TuYNAl" target="_blank" class="book-deal-btn">📋 הזמן ב-Kiwi</a>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-outer">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('july',this)">✈️ Kiwi</button>
+    <button class="tab-btn" onclick="showTab('lm',this)">🌐 lastminute</button>
+    <button class="tab-btn" onclick="showTab('baggage',this)">🧳 מזוודות</button>
+    <button class="tab-btn" onclick="showTab('history',this)">📈 היסטוריה</button>
+  </div>
+</div>
+
+<!-- TAB: KIWI -->
+<div id="tab-july" class="tab-content active">
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="setFilter('all',this)">הכל</button>
+    <button class="filter-btn" onclick="setFilter('feasible',this)">✅ ישימים</button>
+    <button class="filter-btn" onclick="setFilter('direct',this)">ישיר הלוך</button>
+  </div>
+  <div class="section-title">חבילות הלוך-חזור · TLV→FCO 21.7 | FCO→TLV 29.7 · 5 נוסעים (Kiwi)</div>
+  <div class="info-note">מחיר = הלוך + חזור ביחד · ✅ = חזור ≥12:30 · ❌ = לא ישים לקרוז</div>
+  <div id="flights-container"></div>
+</div>
+
+<!-- TAB: LASTMINUTE -->
+<div id="tab-lm" class="tab-content">
+  <div class="section-title">חבילות הלוך-חזור · TLV→FCO 21.7 | FCO→TLV 29.7 · 5 נוסעים (lastminute)</div>
+  <div class="info-note">מחירים באירו (€) · ✅/❌ לפי שעת יציאת חזור (≥12:30 מ-FCO)</div>
+  <div id="lm-container"></div>
+</div>
+
+<!-- TAB: BAGGAGE -->
+<div id="tab-baggage" class="tab-content">
+  <div class="baggage-section">
+    <h4>🧳 מחשבון כבודה — 5 נוסעים · הלוך-חזור</h4>
+    <div class="bag-presets">
+      <button class="preset-btn active" onclick="setPreset('wizz',this)">Wizz Air</button>
+      <button class="preset-btn" onclick="setPreset('ita',this)">ITA Airways</button>
+      <button class="preset-btn" onclick="setPreset('aegean',this)">Aegean</button>
+      <button class="preset-btn" onclick="setPreset('custom',this)">מותאם</button>
+    </div>
+    <div class="bag-grid">
+      <div class="bag-input-group">
+        <label>מזוודה 20 ק"ג<br>(לנוסע, לטיסה) $</label>
+        <input type="number" id="bag20price" value="35" inputmode="numeric" oninput="calcBaggage()">
+      </div>
+      <div class="bag-input-group">
+        <label>תיק יד 10 ק"ג<br>(לנוסע, לטיסה) $</label>
+        <input type="number" id="bag10price" value="12" inputmode="numeric" oninput="calcBaggage()">
+      </div>
+      <div class="bag-input-group">
+        <label>מזוודות 20 ק"ג לנוסע</label>
+        <input type="number" id="bags20count" value="2" min="0" max="4" inputmode="numeric" oninput="calcBaggage()">
+      </div>
+      <div class="bag-input-group">
+        <label>תיקי יד 10 ק"ג לנוסע</label>
+        <input type="number" id="bags10count" value="1" min="0" max="2" inputmode="numeric" oninput="calcBaggage()">
+      </div>
+    </div>
+    <div class="bag-result" id="bag-result"></div>
+    <div class="info-note" style="margin-top:10px">* תיק יד אחד (קבין) ייתכן שבחינם. יש לאמת במהלך ההזמנה.</div>
+  </div>
+  <div class="baggage-section" style="margin-top:10px">
+    <h4>🔗 הזמנה ישירה</h4>
+    <div class="direct-links">
+      <a href="https://www.elal.com/he/flights/search?from=TLV&to=FCO&dep=2026-07-21&ret=2026-07-29&adt=5" target="_blank" class="direct-link-btn">🔵 אל על</a>
+      <a href="https://www.israir.co.il/flights/en/search?dep=TLV&arr=FCO&date=2026-07-21&rdate=2026-07-29&adults=5" target="_blank" class="direct-link-btn">🟣 ישראייר</a>
+      <a href="https://www.google.com/travel/flights?hl=he#flt=TLV.FCO.2026-07-21*FCO.TLV.2026-07-29;c:ILS;e:1;px:5;sd:1;t:f" target="_blank" class="direct-link-btn">🔍 Google</a>
+      <a href="https://www.kiwi.com/he/search/results/tel-aviv-yafo-israel/rome-italy/2026-07-21/2026-07-29?adults=5" target="_blank" class="direct-link-btn">🐦 Kiwi</a>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: HISTORY -->
+<div id="tab-history" class="tab-content">
+  <div class="section-title">מעקב מחירים יומי — זול ביותר לקרוז (5 נוסעים)</div>
+  <div class="chart-container">
+    <canvas id="priceChart"></canvas>
+  </div>
+  <div class="history-table-wrap" id="history-table"></div>
+  <div class="info-note" style="margin-top:8px">המחירים נשמרים מקומית בדפדפן. לחץ "רענן" מדי יום לעדכון.</div>
+</div>
+
+<script>
+/* ─── DATA ───────────────────────────────────────────── */
+const KIWI = [
+  { airline:'Wizz Air Malta',              out:'10:55 → 13:45',  ret:'05:30 → 10:00',   retDep:'05:30', direct:true,  feasible:false, price:862,  link:'https://on.kiwi.com/lNnGvO' },
+  { airline:'Aegean via ATH',              out:'23:30 → 12:00+1',ret:'05:30 → 10:00',   retDep:'05:30', direct:false, feasible:false, price:1284, link:'https://on.kiwi.com/ItRH5A' },
+  { airline:'Bluebirdairways',             out:'14:40 → 17:25',  ret:'05:30 → 10:00',   retDep:'05:30', direct:true,  feasible:false, price:1344, link:'https://on.kiwi.com/xrPJOs' },
+  { airline:'Wizz Air / Aegean via ATH',   out:'10:55 → 13:45',  ret:'18:30 → 02:45+1', retDep:'18:30', direct:true,  feasible:true,  price:1681, link:'https://on.kiwi.com/TuYNAl' },
+  { airline:'ITA Airways',                 out:'14:30 → 17:15',  ret:'05:30 → 10:00',   retDep:'05:30', direct:true,  feasible:false, price:1700, link:'https://on.kiwi.com/EseChf' },
+  { airline:'Wizz Air (ישיר שני כיוונים)', out:'10:55 → 13:45',  ret:'19:35 → 00:00+1', retDep:'19:35', direct:true,  feasible:true,  price:1710, link:'https://on.kiwi.com/2KbJTz' },
+  { airline:'Aegean via ATH (שני כיוונים)',out:'13:50 → 21:30',  ret:'18:30 → 02:45+1', retDep:'18:30', direct:false, feasible:true,  price:2199, link:'https://on.kiwi.com/7WFuaF' },
+  { airline:'Aegean via ATH',              out:'05:00 → 17:35',  ret:'18:30 → 02:45+1', retDep:'18:30', direct:false, feasible:true,  price:2199, link:'https://on.kiwi.com/9WdFWA' },
+  { airline:'Aegean via ATH',              out:'19:55 → 08:35+1',ret:'18:30 → 02:45+1', retDep:'18:30', direct:false, feasible:true,  price:2199, link:'https://on.kiwi.com/5Mt6Xp' },
+  { airline:'ITA Airways',                 out:'18:00 → 20:40',  ret:'10:00 → 14:20',   retDep:'10:00', direct:true,  feasible:false, price:2479, link:'https://on.kiwi.com/UCQYIp' },
+  { airline:'ITA Airways (ישיר שני כיוונים)',out:'18:00 → 20:40',ret:'13:00 → 17:20',   retDep:'13:00', direct:true,  feasible:true,  price:2681, link:'https://on.kiwi.com/8SXuR2' },
+  { airline:'ITA Airways',                 out:'18:00 → 20:40',  ret:'22:50 → 03:10+1', retDep:'22:50', direct:true,  feasible:true,  price:3277, link:'https://on.kiwi.com/QcmXGw' },
+];
+
+/* FIX 5: LM — הוסף שדה outDirect/retDirect לסימון נכון */
+const LM = [
+  { airline:'Wizz Air Malta',          out:'10:55 → 13:45', outDirect:true,  ret:'05:30 → 10:00',    retDirect:true,  retDep:'05:30',   feasible:false, eur:862.65,  link:'https://www.lastminute.com/flights/TLV-FCO/' },
+  { airline:'Bluebirdairways / Wizz',  out:'14:40 → 17:25', outDirect:true,  ret:'05:30 → 10:00',    retDirect:true,  retDep:'05:30',   feasible:false, eur:1194.55, link:'https://www.lastminute.com/flights/TLV-FCO/' },
+  { airline:'ITA Airways / Wizz Air',  out:'14:30 → 17:15', outDirect:true,  ret:'05:30 → 10:00',    retDirect:true,  retDep:'05:30',   feasible:false, eur:1410.05, link:'https://www.lastminute.com/flights/TLV-FCO/' },
+  { airline:'Wizz Air / Israir',       out:'10:55 → 13:45', outDirect:true,  ret:'00:10 → 04:30',    retDirect:true,  retDep:'00:10+1', feasible:true,  eur:1607.80, link:'https://www.lastminute.com/flights/TLV-FCO/' },
+  { airline:'Wizz Air / Tus Airways',  out:'10:55 → 13:45', outDirect:true,  ret:'19:35 → 23:59',    retDirect:true,  retDep:'19:35',   feasible:true,  eur:1750.70, link:'https://www.lastminute.com/flights/TLV-FCO/' },
+  { airline:'Israir / Wizz Air',       out:'16:40 → 19:25', outDirect:true,  ret:'05:30 → 10:00',    retDirect:true,  retDep:'05:30',   feasible:false, eur:1812.10, link:'https://www.lastminute.com/flights/TLV-FCO/' },
+  { airline:'Tus Airways / Wizz Air',  out:'14:40 → 17:25', outDirect:true,  ret:'05:30 → 10:00',    retDirect:true,  retDep:'05:30',   feasible:false, eur:1815.05, link:'https://www.lastminute.com/flights/TLV-FCO/' },
+  { airline:'Bluebirdairways / Israir',out:'14:40 → 17:25', outDirect:true,  ret:'00:10 → 04:30',    retDirect:true,  retDep:'00:10+1', feasible:true,  eur:1939.70, link:'https://www.lastminute.com/flights/TLV-FCO/' },
+];
+
+const EUR_USD = 1.09, PAX = 5;
+const BEST_DEAL_PRICE = 1681;
+let curFilter = 'all', chartInst = null, historyLoaded = false;
+const GF = 'https://www.google.com/travel/flights?hl=he#flt=TLV.FCO.2026-07-21*FCO.TLV.2026-07-29;c:ILS;e:1;px:5;sd:1;t:f';
+
+/* ─── FIX 2: רענון בטוח — sendPrompt לא קיים בקובץ HTML רגיל ── */
+function handleRefresh() {
+  try {
+    if (typeof sendPrompt === 'function') {
+      sendPrompt('רענן את כל נתוני הטיסות TLV לרומא יולי 2026 עבור 5 נוסעים');
+    } else {
+      location.reload();
+    }
+  } catch(e) {
+    location.reload();
+  }
+}
+
+/* ─── FIX 4: TAB SWITCHING — היסטוריה נטענת רק כשנכנסים לטאב ── */
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+
+  if (name === 'history') {
+    if (!historyLoaded) {
+      historyLoaded = true;
+      renderHistory();
+    } else if (chartInst) {
+      // רענן גדלים אם חלון שונה
+      chartInst.resize();
+    }
+  }
+}
+
+/* ─── FILTER ─────────────────────────────────────────── */
+function setFilter(f, btn) {
+  curFilter = f;
+  document.querySelectorAll('#tab-july .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderKiwi();
+}
+
+/* ─── KIWI RENDER ────────────────────────────────────── */
+function renderKiwi() {
+  const el = document.getElementById('flights-container');
+  let list = KIWI.slice();
+  if (curFilter === 'feasible') list = list.filter(f => f.feasible);
+  if (curFilter === 'direct')   list = list.filter(f => f.direct);
+  if (!list.length) { el.innerHTML = '<div class="no-flights">אין טיסות לפי הסינון</div>'; return; }
+
+  el.innerHTML = list.map(f => {
+    const cls = f.feasible ? 'feasible' : 'infeasible';
+    const db  = f.direct
+      ? '<span class="badge badge-direct">ישיר ✈️</span>'
+      : '<span class="badge badge-stop">עצירה</span>';
+    const rb  = f.feasible
+      ? `<span class="badge badge-ok">✅ ${f.retDep}</span>`
+      : `<span class="badge badge-bad">❌ ${f.retDep}</span>`;
+
+    return `<div class="flight-card ${cls}">
+      <div class="fc-top">
+        <div class="fc-info">
+          <div class="airline-name"><span class="src-label src-kiwi">Kiwi</span> ${f.airline}</div>
+          <div class="fc-route">הלוך: ${f.out} ${db}</div>
+          <div class="fc-ret">חזור 29.7: ${f.ret} ${rb}</div>
+        </div>
+        <div class="fc-price">
+          <div class="price-usd">$${f.price.toLocaleString()}</div>
+          <div class="price-sub">5 נוסעים</div>
+          <div class="price-sub">$${Math.round(f.price/PAX)}/אדם</div>
+        </div>
+      </div>
+      <div class="book-links">
+        <a href="${f.link}" target="_blank" class="book-link primary">📋 Kiwi</a>
+        <a href="${GF}"    target="_blank" class="book-link">🔍 Google</a>
+        <a href="https://www.elal.com/he/flights"  target="_blank" class="book-link">🔵 אל על</a>
+        <a href="https://www.israir.co.il"          target="_blank" class="book-link">🟣 ישראייר</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ─── LASTMINUTE RENDER ──────────────────────────────── */
+function renderLM() {
+  const el = document.getElementById('lm-container');
+  el.innerHTML = LM.map(f => {
+    const usd = Math.round(f.eur * EUR_USD);
+    const cls = f.feasible ? 'feasible-rt' : 'infeasible-rt';
+    const rb  = f.feasible
+      ? `<span class="badge badge-ok">✅ ${f.retDep}</span>`
+      : `<span class="badge badge-bad">❌ ${f.retDep}</span>`;
+    const parts = f.airline.split('/');
+    const outAirline = parts[0].trim();
+    const retAirline = parts.length > 1 ? parts[1].trim() : parts[0].trim();
+    /* FIX 5: השתמש בשדות outDirect/retDirect במקום "ישיר" קשיח */
+    const outType = f.outDirect ? 'ישיר' : 'עצירה';
+    const retType = f.retDirect ? 'ישיר' : 'עצירה';
+
+    return `<div class="rt-card ${cls}">
+      <div class="rt-legs">
+        <div>
+          <div class="rt-leg-label">הלוך · TLV→FCO · 21.7</div>
+          <div class="rt-leg-route">${f.out}</div>
+          <div class="rt-leg-airline">${outAirline} · ${outType}</div>
+        </div>
+        <div>
+          <div class="rt-leg-label">חזור · FCO→TLV · 29.7</div>
+          <div class="rt-leg-route">${f.ret} ${rb}</div>
+          <div class="rt-leg-airline">${retAirline} · ${retType}</div>
+        </div>
+      </div>
+      <div class="rt-footer">
+        <div>
+          <div class="rt-price-eur">€${f.eur.toLocaleString()}</div>
+          <div class="rt-price-usd">≈ $${usd.toLocaleString()} · $${Math.round(usd/PAX)}/אדם</div>
+        </div>
+        <a href="${f.link}" target="_blank" class="book-link primary">📋 lastminute</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ─── BAGGAGE ────────────────────────────────────────── */
+const PRESETS = { wizz:{p20:35,p10:12}, ita:{p20:45,p10:18}, aegean:{p20:40,p10:15}, custom:{p20:35,p10:12} };
+function setPreset(n, btn) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const p = PRESETS[n];
+  document.getElementById('bag20price').value = p.p20;
+  document.getElementById('bag10price').value = p.p10;
+  calcBaggage();
+}
+function calcBaggage() {
+  const p20 = +document.getElementById('bag20price').value  || 0;
+  const p10 = +document.getElementById('bag10price').value  || 0;
+  const n20 = +document.getElementById('bags20count').value || 0;
+  const n10 = +document.getElementById('bags10count').value || 0;
+  const t20 = p20*n20*PAX*2, t10 = p10*n10*PAX*2;
+  const tb = t20+t10, grand = BEST_DEAL_PRICE+tb;
+  document.getElementById('bag-result').innerHTML = `
+    <div class="bag-result-row">
+      <span class="bag-row-label">מזוודות 20 ק"ג</span>
+      <span class="bag-row-val">${n20}×${PAX}×2×$${p20} = <strong>$${t20.toLocaleString()}</strong></span>
+    </div>
+    <div class="bag-result-row">
+      <span class="bag-row-label">תיקי יד 10 ק"ג</span>
+      <span class="bag-row-val">${n10}×${PAX}×2×$${p10} = <strong>$${t10.toLocaleString()}</strong></span>
+    </div>
+    <div class="bag-result-total"><span>סה"כ כבודה</span><span>$${tb.toLocaleString()}</span></div>
+    <div class="bag-result-total" style="color:#fbbf24;margin-top:6px;padding-top:6px;border-top:1px solid #166534">
+      <span>✈️ טיסות (Kiwi) + כבודה</span><span>$${grand.toLocaleString()}</span>
+    </div>`;
+}
+
+/* ─── PRICE HISTORY ──────────────────────────────────── */
+function getTodayStr() {
+  /* FIX 3: תאריך דינמי במקום קשיח */
+  return new Date().toISOString().slice(0, 10);
+}
+
+function loadHistory() {
+  let h = [];
+  try {
+    const r = localStorage.getItem('flightPH_v3');
+    if (r) h = JSON.parse(r);
+  } catch(e) {}
+
+  const todayStr = getTodayStr();
+  const today = { date: todayStr, price: BEST_DEAL_PRICE, src: 'Kiwi' };
+  const ex = h.find(x => x.date === today.date);
+  if (!ex) {
+    h.push(today);
+  } else if (today.price < ex.price) {
+    ex.price = today.price;
+    ex.src   = 'Kiwi';
+  }
+  try { localStorage.setItem('flightPH_v3', JSON.stringify(h)); } catch(e) {}
+  return h.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/* ─── CHART.JS DYNAMIC LOADER ────────────────────────── */
+/* נטען רק כשנכנסים לטאב היסטוריה — לא חוסם שאר הדף */
+function loadChartJs(callback) {
+  if (typeof Chart !== 'undefined') { callback(); return; }
+  const container = document.querySelector('.chart-container');
+  container.innerHTML = '<div class="chart-error" style="color:#5a7096">⏳ טוען גרף...</div>';
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
+  s.onload  = callback;
+  s.onerror = () => {
+    container.innerHTML = '<div class="chart-error">⚠️ גרף לא זמין — בדוק חיבור לאינטרנט.</div>';
+  };
+  document.head.appendChild(s);
+}
+
+/* renderHistory נקרא רק כשהטאב גלוי (מ-showTab) — Chart.js צריך מימדים */
+function renderHistory() {
+  loadChartJs(() => {
+    const h = loadHistory();
+    const canvas = document.getElementById('priceChart');
+    const container = document.querySelector('.chart-container');
+    /* שחזר את ה-canvas אם הוחלף בהודעת הטעינה */
+    if (!container.querySelector('canvas')) {
+      container.innerHTML = '<canvas id="priceChart"></canvas>';
+    }
+    try {
+      const ctx = document.getElementById('priceChart').getContext('2d');
+      if (chartInst) chartInst.destroy();
+      chartInst = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: h.map(x => x.date.slice(5)),
+          datasets: [{
+            label: 'מחיר ישים לקרוז ($)',
+            data: h.map(x => x.price),
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16,185,129,0.08)',
+            pointBackgroundColor: '#10b981',
+            pointRadius: 5,
+            tension: 0.3,
+            fill: true,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color:'#94a3b8', font:{ size:11 } } },
+            tooltip: { callbacks: { label: c => ' $' + c.parsed.y.toLocaleString() + ' (5 נוסעים)' } }
+          },
+          scales: {
+            x: { ticks:{ color:'#5a7096', maxRotation:0, font:{size:11} }, grid:{ color:'#1a2234' } },
+            y: { ticks:{ color:'#5a7096', callback: v => '$'+v.toLocaleString(), font:{size:11} }, grid:{ color:'#1a2234' } }
+          }
+        }
+      });
+    } catch(err) {
+      container.innerHTML = '<div class="chart-error">שגיאה בטעינת הגרף.</div>';
+    }
+
+    document.getElementById('history-table').innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+        <thead>
+          <tr style="border-bottom:1px solid #1e2940;color:#5a7096">
+            <th style="padding:8px 6px;text-align:right">תאריך</th>
+            <th style="padding:8px 6px;text-align:left">מחיר</th>
+            <th style="padding:8px 6px;text-align:left">מקור</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${h.map(x => `
+            <tr style="border-bottom:1px solid #121824">
+              <td style="padding:8px 6px;color:#94a3b8">${x.date}</td>
+              <td style="padding:8px 6px;color:#10b981;font-weight:700">$${x.price.toLocaleString()}</td>
+              <td style="padding:8px 6px;color:#5a7096">${x.src}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }); /* end loadChartJs callback */
+}
+
+/* ─── INIT ───────────────────────────────────────────── */
+document.getElementById('lastUpdate').textContent = 'עודכן: ' + new Date().toLocaleString('he-IL');
+renderKiwi();
+renderLM();
+calcBaggage();
+/* FIX 4: renderHistory() מוסר מה-init — יטען רק כשנכנסים לטאב היסטוריה */
+</script>
+</body>
+</html>
