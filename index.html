@@ -403,8 +403,9 @@ a { color: inherit; }
 <div id="tab-july" class="tab-content active">
   <div class="filter-row">
     <button class="filter-btn active" onclick="setFilter('all',this)">הכל</button>
-    <button class="filter-btn" onclick="setFilter('feasible',this)">✅ ישימים</button>
-    <button class="filter-btn" onclick="setFilter('direct',this)">ישיר הלוך</button>
+    <button class="filter-btn" onclick="setFilter('feasible',this)">✅ מתאים לקרוז</button>
+    <button class="filter-btn" onclick="setFilter('bothdirect',this)">✈️ ישיר הלוך-חזור</button>
+    <button class="filter-btn" onclick="setFilter('bothdirect_feasible',this)">⭐ ישיר + מתאים</button>
   </div>
   <div class="section-title">חבילות הלוך-חזור · TLV→FCO 21.7 | FCO→TLV 29.7 · 5 נוסעים (Kiwi)</div>
   <div class="info-note">מחיר = הלוך + חזור ביחד · ✅ = חזור ≥12:30 · ❌ = לא ישים לקרוז</div>
@@ -473,18 +474,18 @@ a { color: inherit; }
 <script>
 /* ─── DATA ───────────────────────────────────────────── */
 const KIWI = [
-  { airline:'Wizz Air Malta',              out:'10:55 → 13:45',  ret:'05:30 → 10:00',   retDep:'05:30', direct:true,  feasible:false, price:862,  link:'https://on.kiwi.com/lNnGvO' },
-  { airline:'Aegean via ATH',              out:'23:30 → 12:00+1',ret:'05:30 → 10:00',   retDep:'05:30', direct:false, feasible:false, price:1284, link:'https://on.kiwi.com/ItRH5A' },
-  { airline:'Bluebirdairways',             out:'14:40 → 17:25',  ret:'05:30 → 10:00',   retDep:'05:30', direct:true,  feasible:false, price:1344, link:'https://on.kiwi.com/xrPJOs' },
-  { airline:'Wizz Air / Aegean via ATH',   out:'10:55 → 13:45',  ret:'18:30 → 02:45+1', retDep:'18:30', direct:true,  feasible:true,  price:1681, link:'https://on.kiwi.com/TuYNAl' },
-  { airline:'ITA Airways',                 out:'14:30 → 17:15',  ret:'05:30 → 10:00',   retDep:'05:30', direct:true,  feasible:false, price:1700, link:'https://on.kiwi.com/EseChf' },
-  { airline:'Wizz Air (ישיר שני כיוונים)', out:'10:55 → 13:45',  ret:'19:35 → 00:00+1', retDep:'19:35', direct:true,  feasible:true,  price:1710, link:'https://on.kiwi.com/2KbJTz' },
-  { airline:'Aegean via ATH (שני כיוונים)',out:'13:50 → 21:30',  ret:'18:30 → 02:45+1', retDep:'18:30', direct:false, feasible:true,  price:2199, link:'https://on.kiwi.com/7WFuaF' },
-  { airline:'Aegean via ATH',              out:'05:00 → 17:35',  ret:'18:30 → 02:45+1', retDep:'18:30', direct:false, feasible:true,  price:2199, link:'https://on.kiwi.com/9WdFWA' },
-  { airline:'Aegean via ATH',              out:'19:55 → 08:35+1',ret:'18:30 → 02:45+1', retDep:'18:30', direct:false, feasible:true,  price:2199, link:'https://on.kiwi.com/5Mt6Xp' },
-  { airline:'ITA Airways',                 out:'18:00 → 20:40',  ret:'10:00 → 14:20',   retDep:'10:00', direct:true,  feasible:false, price:2479, link:'https://on.kiwi.com/UCQYIp' },
-  { airline:'ITA Airways (ישיר שני כיוונים)',out:'18:00 → 20:40',ret:'13:00 → 17:20',   retDep:'13:00', direct:true,  feasible:true,  price:2681, link:'https://on.kiwi.com/8SXuR2' },
-  { airline:'ITA Airways',                 out:'18:00 → 20:40',  ret:'22:50 → 03:10+1', retDep:'22:50', direct:true,  feasible:true,  price:3277, link:'https://on.kiwi.com/QcmXGw' },
+  { airline:'Wizz Air Malta',               out:'10:55 → 13:45',  ret:'05:30 → 10:00',   retDep:'05:30', direct:true,  retDirect:true,  feasible:false, price:862,  link:'https://on.kiwi.com/lNnGvO' },
+  { airline:'Aegean via ATH',               out:'23:30 → 12:00+1',ret:'05:30 → 10:00',   retDep:'05:30', direct:false, retDirect:true,  feasible:false, price:1284, link:'https://on.kiwi.com/ItRH5A' },
+  { airline:'Bluebirdairways',              out:'14:40 → 17:25',  ret:'05:30 → 10:00',   retDep:'05:30', direct:true,  retDirect:true,  feasible:false, price:1344, link:'https://on.kiwi.com/xrPJOs' },
+  { airline:'Wizz Air / Aegean via ATH',    out:'10:55 → 13:45',  ret:'18:30 → 02:45+1', retDep:'18:30', direct:true,  retDirect:false, feasible:true,  price:1681, link:'https://on.kiwi.com/TuYNAl' },
+  { airline:'ITA Airways',                  out:'14:30 → 17:15',  ret:'05:30 → 10:00',   retDep:'05:30', direct:true,  retDirect:true,  feasible:false, price:1700, link:'https://on.kiwi.com/EseChf' },
+  { airline:'Wizz Air (ישיר שני כיוונים)',  out:'10:55 → 13:45',  ret:'19:35 → 00:00+1', retDep:'19:35', direct:true,  retDirect:true,  feasible:true,  price:1710, link:'https://on.kiwi.com/2KbJTz' },
+  { airline:'Aegean via ATH (שני כיוונים)',out:'13:50 → 21:30',  ret:'18:30 → 02:45+1', retDep:'18:30', direct:false, retDirect:false, feasible:true,  price:2199, link:'https://on.kiwi.com/7WFuaF' },
+  { airline:'Aegean via ATH',              out:'05:00 → 17:35',  ret:'18:30 → 02:45+1', retDep:'18:30', direct:false, retDirect:false, feasible:true,  price:2199, link:'https://on.kiwi.com/9WdFWA' },
+  { airline:'Aegean via ATH',              out:'19:55 → 08:35+1',ret:'18:30 → 02:45+1', retDep:'18:30', direct:false, retDirect:false, feasible:true,  price:2199, link:'https://on.kiwi.com/5Mt6Xp' },
+  { airline:'ITA Airways',                 out:'18:00 → 20:40',  ret:'10:00 → 14:20',   retDep:'10:00', direct:true,  retDirect:true,  feasible:false, price:2479, link:'https://on.kiwi.com/UCQYIp' },
+  { airline:'ITA Airways (ישיר שני כיוונים)',out:'18:00 → 20:40',ret:'13:00 → 17:20',   retDep:'13:00', direct:true,  retDirect:true,  feasible:true,  price:2681, link:'https://on.kiwi.com/8SXuR2' },
+  { airline:'ITA Airways',                 out:'18:00 → 20:40',  ret:'22:50 → 03:10+1', retDep:'22:50', direct:true,  retDirect:true,  feasible:true,  price:3277, link:'https://on.kiwi.com/QcmXGw' },
 ];
 
 /* FIX 5: LM — הוסף שדה outDirect/retDirect לסימון נכון */
@@ -547,8 +548,9 @@ function setFilter(f, btn) {
 function renderKiwi() {
   const el = document.getElementById('flights-container');
   let list = KIWI.slice();
-  if (curFilter === 'feasible') list = list.filter(f => f.feasible);
-  if (curFilter === 'direct')   list = list.filter(f => f.direct);
+  if (curFilter === 'feasible')          list = list.filter(f => f.feasible);
+  if (curFilter === 'bothdirect')        list = list.filter(f => f.direct && f.retDirect);
+  if (curFilter === 'bothdirect_feasible') list = list.filter(f => f.direct && f.retDirect && f.feasible);
   if (!list.length) { el.innerHTML = '<div class="no-flights">אין טיסות לפי הסינון</div>'; return; }
 
   el.innerHTML = list.map(f => {
@@ -762,17 +764,4 @@ function renderHistory() {
             borderColor: '#10b981',
             backgroundColor: 'rgba(16,185,129,0.08)',
             pointBackgroundColor: '#10b981',
-            pointRadius: 5,
-            tension: 0.3,
-            fill: true,
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { labels: { color:'#94a3b8', font:{ size:11 } } },
-            tooltip: { callbacks: { label: c => ' $' + c.parsed.y.toLocaleString() + ' (5 נוסעים)' } }
-          },
-          scales: {
-            x: { ticks:{ color:'#5a7096', maxRotation:0, font:{size:11} }, grid:{ color:
+            poin
